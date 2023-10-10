@@ -27,3 +27,30 @@ class MenuItemsView(generics.ListCreateAPIView):
             return super().post(request, *args, **kwargs)
         else:
             return Response(f'403 - Unauthorized', status=403)
+
+
+class SingleMenuItemsView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        if user.groups.filter(name='Manager').exists() or user.is_superuser:
+            return super().put(request, *args, **kwargs)
+        else:
+            return Response(f'403 - Unauthorized', status=403)
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        if user.groups.filter(name='Manager').exists() or user.is_superuser:
+            return super().patch(request, *args, **kwargs)
+        else:
+            return Response(f'403 - Unauthorized', status=403)
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        if user.groups.filter(name='Manager').exists() or user.is_superuser:
+            return super().delete(request, *args, **kwargs)
+        else:
+            return Response(f'403 - Unauthorized', status=403)
