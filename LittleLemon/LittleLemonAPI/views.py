@@ -2,14 +2,15 @@ from django.shortcuts import render, get_object_or_404
 
 # Create your views here.
 from rest_framework import generics
-from .models import MenuItem, Category
-from .serializers import MenuItemSerializer, CategorySerializer, UserGroupSerializer
+from .models import MenuItem, Category, Cart
+from .serializers import MenuItemSerializer, CategorySerializer, UserGroupSerializer, CartSerializer
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.views import APIView
 
 
 class CategoriesView(generics.ListCreateAPIView, generics.DestroyAPIView):
@@ -187,3 +188,35 @@ class DeleteDeliveryCrewView(generics.RetrieveDestroyAPIView):
                 return Response('404 - Not found', status=404)
         else:
             return Response(f'403 - Unauthorized', status=403)
+
+
+class CartView(generics.ListCreateAPIView, generics.DestroyAPIView):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+
+    def perform_create(self, serializer):
+        # Set the user to the authenticated user when creating a new Cart object
+        serializer.save(user=self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        print(user.id)
+        try:
+            useritems = Cart.objects.filter(user=user.id).all()
+        except ObjectDoesNotExist:
+            useritems = None
+        if useritems:
+            queryset = [{'id': useritem.id,
+                         'menuitem': str(useritem.menuitem),
+                         'quantity': useritem.quantity,
+                         'unit_price': useritem.unit_price,
+                         'price': useritem.price,
+                         'user': str(useritem.user)} for useritem in useritems]
+            return Response({'details': queryset})
+        else:
+            return Response('404 - Not found', status=404)
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        Cart.objects.filter(user=user).delete()
+        return Response('200 - success', status=200)
