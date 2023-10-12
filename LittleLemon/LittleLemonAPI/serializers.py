@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models import MenuItem, Category, Cart
+from .models import MenuItem, Category, Cart, Order, OrderItem
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
+import datetime
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -63,3 +64,122 @@ class CartSerializer(serializers.ModelSerializer):
         )
 
         return cart
+
+
+class AdminOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
+        read_only_fields = ('user', 'total', 'date')
+
+    def create(self, validated_data):
+        # Get the user from the request
+        user = self.context['request'].user
+
+        total = 0
+        user_cart = Cart.objects.filter(user=user).all()
+        for cartitem in user_cart:
+            total += cartitem.price
+
+        date = datetime.date.today()
+
+        order = Order.objects.create(
+            user=user,
+            delivery_crew=None,
+            status=0,
+            total=total,
+            date=date
+        )
+        objectlist = []
+        for cart_item in user_cart:
+            objectlist = OrderItem.objects.create(
+                order=user,
+                menuitem=cart_item.menuitem,
+                quantity=cart_item.quantity,
+                unit_price=cart_item.unit_price,
+                price=cart_item.price
+            )
+        user_cart.delete()
+        return objectlist
+
+
+class CrewOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
+        read_only_fields = ('user', 'total', 'delivery_crew', 'date')
+
+    def create(self, validated_data):
+        # Get the user from the request
+        user = self.context['request'].user
+
+        total = 0
+        user_cart = Cart.objects.filter(user=user).all()
+        for cartitem in user_cart:
+            total += cartitem.price
+
+        date = datetime.date.today()
+
+        order = Order.objects.create(
+            user=user,
+            delivery_crew=None,
+            status=0,
+            total=total,
+            date=date
+        )
+        objectlist = []
+        for cart_item in user_cart:
+            objectlist = OrderItem.objects.create(
+                order=user,
+                menuitem=cart_item.menuitem,
+                quantity=cart_item.quantity,
+                unit_price=cart_item.unit_price,
+                price=cart_item.price
+            )
+        user_cart.delete()
+        return objectlist
+
+
+class CustomerOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['user', 'total', 'status', 'date']
+        read_only_fields = ('user', 'total', 'status', 'date')
+
+    def create(self, validated_data):
+        # Get the user from the request
+        user = self.context['request'].user
+
+        total = 0
+        user_cart = Cart.objects.filter(user=user).all()
+        for cartitem in user_cart:
+            total += cartitem.price
+
+        date = datetime.date.today()
+
+        order = Order.objects.create(
+            user=user,
+            delivery_crew=None,
+            status=0,
+            total=total,
+            date=date
+        )
+        objectlist = []
+        for cart_item in user_cart:
+            objectlist = OrderItem.objects.create(
+                order=user,
+                menuitem=cart_item.menuitem,
+                quantity=cart_item.quantity,
+                unit_price=cart_item.unit_price,
+                price=cart_item.price
+            )
+        user_cart.delete()
+        return objectlist
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+        read_only_fields = ('order', 'menuitem',
+                            'quantity' 'price', 'unit_price')
